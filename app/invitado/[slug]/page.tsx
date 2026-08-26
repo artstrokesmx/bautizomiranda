@@ -5,11 +5,28 @@ import Contador from "@/app/componentes/Contador";
 import Ubicacion from "@/app/componentes/Ubicacion";
 import Mesa from "@/app/componentes/MesaRegalos";
 import Itinerario from "@/app/componentes/Itinerario"
+import Confirmacion from "@/app/componentes/Confirmacion"
 
-export default function Home() {
+//prueba de bd
+import { obtenerInvitadoPorSlug, obtenerDatosEvento } from "@/services/invitadosService";
+
+
+export default async function InvitacionPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  const invitado = await obtenerInvitadoPorSlug(slug);
+  const evento = await obtenerDatosEvento();
+
+
+  if (!invitado) {
+    return <p className="text-center mt-10">Invitación no encontrada</p>;
+  }
+
   return (
     <main className="min-h-screen bg-stone-100 flex items-center justify-center p-0 md:p-6 lg:p-10">
-      {/* Marco Celular Fijo */}
       <div className="
         relative
         w-full
@@ -76,11 +93,26 @@ export default function Home() {
           text-center
           space-y-8
         ">
-          <Bienvenida />
+          <Bienvenida 
+            nombreInvitado={invitado.nombreInvitado}
+            nombreFamilia={invitado.nombreFamilia}
+            nombreBebe={evento.nombreBebe}
+          />
           <Contador />
           <Ubicacion />
           <Mesa />
           <Itinerario/>
+          <div className="mt-8 p-6 bg-white rounded-2xl shadow-sm border border-amber-200 max-w-sm w-full space-y-4">
+            <p className="text-sm text-stone-600">
+              Hemos reservado <strong className="text-amber-800">{invitado.pasesAsignados} pases</strong> para la {invitado.nombreFamilia}.
+            </p>
+            
+            <Confirmacion 
+              idInvitado={invitado.id}
+              pasesAsignados={invitado.pasesAsignados}
+              nombreFamilia={invitado.nombreFamilia}
+            />
+      </div>
         </div>
 
       </div>

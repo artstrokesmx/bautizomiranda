@@ -1,0 +1,434 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { Invitado } from "@/types/interfaces/invitacion";
+import { obtenerTodosLosInvitados } from "@/services/invitadosService";
+
+// Helper para crear slugs limpios a partir del nombre
+const generarSlug = (nombre: string) => {
+  return nombre
+    .toLowerCase()
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // Quita acentos
+    .replace(/[^a-z0-9 -]/g, '')     // Quita caracteres especiales
+    .replace(/\s+/g, '-')            // Reemplaza espacios por guiones
+    .replace(/-+/g, '-');
+};
+
+function compartirWhatsApp(invitado: Invitado) {
+  const urlInvitacion = `${window.location.origin}/invitado/${invitado.slug}`;
+  const mensaje = `¡Hola ${invitado.nombreInvitado}! 👋✨\nNos encantaría que nos acompañaras en el bautizo. Diseñamos una invitación especial para ti:\n\n👉 ${urlInvitacion}`;
+  const urlWhatsapp = `https://wa.me/?text=${encodeURIComponent(mensaje)}`;
+  
+  window.open(urlWhatsapp, '_blank', 'noopener,noreferrer');
+}
+
+export default function Panel() {
+  const [invitados, setInvitados] = useState<Invitado[]>([]);
+
+  // Configuración de Mesas
+  const [numMesas, setNumMesas] = useState<number>(6);
+  const [sillasPorMesa, setSillasPorMesa] = useState<number>(10);
+  
+  // Guardará qué mesa tiene asignado a cada invitado: { [invitadoId]: numeroDeMesa }
+  const [asignacionesMesas, setAsignacionesMesas] = useState<Record<string, number>>({});
+
+  // Estado para el formulario de nuevo invitado
+  const [nombreInvitado, setNombreInvitado] = useState('');
+  const [nombreFamilia, setNombreFamilia] = useState('');
+  const [pasesAsignados, setPasesAsignados] = useState(2);
+  const [pasesNinos, setPasesNinos] = useState(0);
+  const [categoria, setCategoria] = useState('Familia Jessy');
+  const [menuNinos, setMenuNinos] = useState(false);
+
+  // Cargar datos iniciales desde el servicio mock
+  useEffect(() => {
+    async function cargarDatos() {
+      const datos = await obtenerTodosLosInvitados();
+      setInvitados(datos);
+    }
+    cargarDatos();
+  }, []);
+
+  // Agregar nuevo invitado
+  const handleAgregarInvitado = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!nombreInvitado.trim()) return;
+
+    const nuevoInvitado: Invitado = {
+      id: Date.now().toString(),
+      slug: generarSlug(nombreInvitado),
+      nombreInvitado,
+      nombreFamilia: nombreFamilia || `Familia ${nombreInvitado.split(' ')[0]}`,
+      pasesAsignados: Number(pasesAsignados),
+      pasesNinos: Number(pasesNinos),
+      categoria,
+      menuNinos,
+      estatus: 'pendiente',
+    };
+
+    setInvitados((prev) => [nuevoInvitado, ...prev]);
+
+    // Limpiar formulario
+    setNombreInvitado('');
+    setNombreFamilia('');
+    setPasesAsignados(2);
+    setPasesNinos(0);
+    setMenuNinos(false);
+  };
+
+  // Asignar o remover una familia de una mesa
+  const handleAsignarMesa = (invitadoId: string, mesaNumero: number | null) => {
+    setAsignacionesMesas((prev) => {
+      const copy = { ...prev };
+      if (mesaNumero === null) {
+        delete copy[invitadoId]; // Sin asignar
+      } else {
+        copy[invitadoId] = mesaNumero;
+      }
+      return copy;
+    });
+  };
+
+  // Cálculos de métricas dinámicas
+  const totalPases = invitados.reduce((acc, curr) => acc + curr.pasesAsignados, 0);
+  const confirmados = invitados.filter(i => i.estatus === 'confirmado').reduce((acc, curr) => acc + curr.pasesAsignados, 0);
+  const pendientes = invitados.filter(i => i.estatus === 'pendiente').reduce((acc, curr) => acc + curr.pasesAsignados, 0);
+  const rechazados = invitados.filter(i => i.estatus === 'rechazado').reduce((acc, curr) => acc + curr.pasesAsignados, 0);
+
+  // Invitados pendientes por asignar mesa (FIX)
+  const invitadosSinMesa = invitados.filter(inv => !asignacionesMesas[inv.id]);
+
+  const categoriasDisponibles = ['Familia Jessy', 'Familia Arturo', 'Amigo Jessy', 'Amigo Arturo', 'Trabajo'];
+
+  return (
+    <div className="w-full max-w-6xl mx-auto p-4 md:p-8 space-y-8 font-serif text-stone-800">
+      
+      {/* Encabezado */}
+      <header className="text-center space-y-1">
+        <h2 className="text-3xl font-bold text-amber-900">Panel de Control</h2>
+        <p className="text-sm text-stone-500">Administra tus invitados y pases para el bautizo.</p>
+      </header>
+
+      {/* Grid Principal: Formulario + Estadísticas/Lista */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        {/* Formulario de Alta */}
+        <section className="bg-white p-6 rounded-3xl border border-amber-200 shadow-sm space-y-4 h-fit">
+          <h2 className="text-xl font-bold text-amber-900 border-b pb-2">Agregar Invitado</h2>
+          
+          <form className="space-y-4" onSubmit={handleAgregarInvitado}>
+            <div>
+              <label className="block text-xs font-bold mb-1">Nombre del invitado:</label>
+              <input 
+                type="text" 
+                required
+                value={nombreInvitado}
+                onChange={(e) => setNombreInvitado(e.target.value)}
+                placeholder="Ej: Mariana López" 
+                className="w-full p-2.5 text-sm rounded-xl bg-stone-100 border border-stone-200 focus:outline-none focus:ring-2 focus:ring-amber-400"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold mb-1">Nombre de la Familia:</label>
+              <input 
+                type="text" 
+                value={nombreFamilia}
+                onChange={(e) => setNombreFamilia(e.target.value)}
+                placeholder="Ej: Familia López" 
+                className="w-full p-2.5 text-sm rounded-xl bg-stone-100 border border-stone-200 focus:outline-none focus:ring-2 focus:ring-amber-400"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-bold mb-1">Total Pases:</label>
+                <input 
+                  type="number" 
+                  min="1"
+                  value={pasesAsignados}
+                  onChange={(e) => setPasesAsignados(Number(e.target.value))}
+                  className="w-full p-2.5 text-sm rounded-xl bg-stone-100 border border-stone-200"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold mb-1">Niños:</label>
+                <input 
+                  type="number" 
+                  min="0"
+                  max={pasesAsignados}
+                  value={pasesNinos}
+                  onChange={(e) => setPasesNinos(Number(e.target.value))}
+                  className="w-full p-2.5 text-sm rounded-xl bg-stone-100 border border-stone-200"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold mb-1">Tipo de invitado:</label>
+              <select 
+                value={categoria}
+                onChange={(e) => setCategoria(e.target.value)}
+                className="w-full p-2.5 text-sm rounded-xl bg-stone-100 border border-stone-200"
+              >
+                {categoriasDisponibles.map((cat) => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2 pt-1">
+              <input 
+                type="checkbox" 
+                id="menuNinos" 
+                checked={menuNinos}
+                onChange={(e) => setMenuNinos(e.target.checked)}
+                className="w-4 h-4 text-pink-500 rounded accent-pink-400 cursor-pointer" 
+              />
+              <label htmlFor="menuNinos" className="text-xs font-medium cursor-pointer select-none">
+                ¿Requiere menú infantil?
+              </label>
+            </div>
+
+            <button 
+              type="submit" 
+              className="w-full py-3 bg-amber-700 hover:bg-amber-800 text-white rounded-full text-sm font-bold shadow-md transition-all active:scale-95"
+            >
+              Guardar Invitado
+            </button>
+          </form>
+        </section>
+
+        {/* Métricas y Lista */}
+        <section className="lg:col-span-2 space-y-6">
+          
+          {/* Métricas rápidas */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="bg-amber-100/60 p-4 rounded-2xl border border-amber-200 text-center">
+              <span className="block text-xs text-amber-800 font-bold uppercase">Total Pases</span>
+              <span className="text-2xl font-bold text-amber-900">{totalPases}</span>
+            </div>
+            <div className="bg-emerald-100/60 p-4 rounded-2xl border border-emerald-200 text-center">
+              <span className="block text-xs text-emerald-800 font-bold uppercase">Confirmados</span>
+              <span className="text-2xl font-bold text-emerald-900">{confirmados}</span>
+            </div>
+            <div className="bg-yellow-100/60 p-4 rounded-2xl border border-yellow-200 text-center">
+              <span className="block text-xs text-yellow-800 font-bold uppercase">Pendientes</span>
+              <span className="text-2xl font-bold text-yellow-900">{pendientes}</span>
+            </div>
+            <div className="bg-rose-100/60 p-4 rounded-2xl border border-rose-200 text-center">
+              <span className="block text-xs text-rose-800 font-bold uppercase">Rechazados</span>
+              <span className="text-2xl font-bold text-rose-900">{rechazados}</span>
+            </div>
+          </div>
+
+          {/* Distribución por Grupos */}
+          <div className="bg-white p-5 rounded-3xl border border-stone-200 shadow-sm space-y-3">
+            <h3 className="text-sm font-bold uppercase tracking-wider text-stone-600">
+              Distribución por Grupos
+            </h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+              {categoriasDisponibles.map((cat) => {
+                const count = invitados.filter(i => i.categoria === cat).reduce((acc, curr) => acc + curr.pasesAsignados, 0);
+                return (
+                  <div key={cat} className="p-3 bg-stone-50 rounded-xl border border-stone-200">
+                    <p className="font-bold text-stone-700">{cat}</p>
+                    <p className="text-stone-500">{count} pases asignados</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Lista con Semáforo */}
+          <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-sm space-y-4">
+            <h3 className="text-lg font-bold text-stone-800">Lista de Invitados</h3>
+
+            <div className="divide-y divide-stone-100">
+              {invitados.map((inv) => (
+                <div key={inv.id} className="py-3 flex items-center justify-between text-sm flex-wrap gap-2">
+                  <div className="flex items-center gap-3">
+                    {inv.estatus === 'confirmado' && <span className="w-3.5 h-3.5 rounded-full bg-emerald-500 shadow-sm flex-shrink-0" title="Confirmado"></span>}
+                    {inv.estatus === 'pendiente' && <span className="w-3.5 h-3.5 rounded-full bg-amber-400 shadow-sm animate-pulse flex-shrink-0" title="Pendiente"></span>}
+                    {inv.estatus === 'rechazado' && <span className="w-3.5 h-3.5 rounded-full bg-rose-500 shadow-sm flex-shrink-0" title="Rechazado"></span>}
+                    
+                    <div>
+                      <p className="font-bold text-stone-800">{inv.nombreInvitado} <span className="text-stone-500 font-normal">({inv.nombreFamilia})</span></p>
+                      <p className="text-xs text-stone-400">{inv.categoria} • {inv.pasesAsignados} pases ({inv.pasesNinos} niños)</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={() => {
+                        const url = `${window.location.origin}/invitado/${inv.slug}`;
+                        navigator.clipboard.writeText(url);
+                        alert('¡Enlace copiado al portapapeles!');
+                      }}
+                      className="text-xs px-3 py-1 bg-stone-100 hover:bg-stone-200 rounded-lg text-stone-600 transition-colors"
+                    >
+                      Copiar Enlace
+                    </button>
+
+                    <button 
+                      onClick={() => compartirWhatsApp(inv)}
+                      className="text-xs px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition-colors flex items-center gap-1"
+                    >
+                      WhatsApp
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      </div>
+
+      {/* CROQUIS Y GESTOR INTERACTIVO DE MESAS */}
+      <section className="bg-white p-6 rounded-3xl border border-stone-200 shadow-sm space-y-6 w-full">
+        <div className="flex flex-col md:flex-row md:items-center justify-between border-b pb-4 gap-4">
+          <div>
+            <h3 className="text-xl font-bold text-amber-900">Acomodo Interactivo de Mesas</h3>
+            <p className="text-xs text-stone-500">Asigna las familias y sus pases completos en cada mesa.</p>
+          </div>
+
+          {/* Configuración de Capacidad */}
+          <div className="flex items-center gap-4 bg-stone-50 p-3 rounded-2xl border border-stone-200 text-xs">
+            <div className="flex items-center gap-2">
+              <label className="font-bold">Total Mesas:</label>
+              <input 
+                type="number" 
+                min="1" 
+                max="20"
+                value={numMesas} 
+                onChange={(e) => setNumMesas(Number(e.target.value))} 
+                className="w-14 p-1 rounded-lg border text-center font-bold"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="font-bold">Sillas por Mesa:</label>
+              <input 
+                type="number" 
+                min="4" 
+                max="20"
+                value={sillasPorMesa} 
+                onChange={(e) => setSillasPorMesa(Number(e.target.value))} 
+                className="w-14 p-1 rounded-lg border text-center font-bold"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Panel para asignar familias sin mesa */}
+        {invitadosSinMesa.length > 0 && (
+          <div className="bg-amber-50/60 p-4 rounded-2xl border border-amber-200 space-y-2">
+            <h4 className="text-xs font-bold text-amber-900 uppercase tracking-wide">
+              Familias pendientes por acomodar ({invitadosSinMesa.length})
+            </h4>
+            <div className="flex flex-wrap gap-2">
+              {invitadosSinMesa.map((inv) => (
+                <div 
+                  key={inv.id} 
+                  className="bg-white border border-amber-200 shadow-xs px-3 py-1.5 rounded-xl text-xs flex items-center gap-2"
+                >
+                  <div>
+                    <span className="font-bold text-stone-800">{inv.nombreFamilia}</span>
+                    <span className="text-stone-400 text-[10px] block">{inv.pasesAsignados} pases</span>
+                  </div>
+                  <select
+                    onChange={(e) => e.target.value && handleAsignarMesa(inv.id, Number(e.target.value))}
+                    defaultValue=""
+                    className="text-[11px] bg-amber-100 text-amber-900 rounded px-1 py-0.5 font-bold cursor-pointer"
+                  >
+                    <option value="" disabled>Mesa...</option>
+                    {Array.from({ length: numMesas }, (_, index) => (
+                      <option key={index + 1} value={index + 1}>
+                        Mesa {index + 1}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Grid de Mesas */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {Array.from({ length: numMesas }, (_, index) => {
+            const numeroMesa = index + 1;
+            
+            // Familias asignadas a esta mesa específica
+            const familiasEnMesa = invitados.filter(inv => asignacionesMesas[inv.id] === numeroMesa);
+            
+            // Total de sillas ocupadas en esta mesa
+            const sillasOcupadas = familiasEnMesa.reduce((acc, curr) => acc + curr.pasesAsignados, 0);
+            const asientosLibres = sillasPorMesa - sillasOcupadas;
+            const estaLlana = sillasOcupadas > sillasPorMesa;
+
+            return (
+              <div 
+                key={numeroMesa} 
+                className={`p-5 rounded-3xl border transition-all ${
+                  estaLlana 
+                    ? 'bg-rose-50/40 border-rose-300' 
+                    : 'bg-white border-stone-200 shadow-sm'
+                }`}
+              >
+                {/* Cabecera de la Mesa */}
+                <div className="flex items-center justify-between border-b pb-3 mb-3">
+                  <div>
+                    <h4 className="font-bold text-stone-800 text-base">Mesa {numeroMesa}</h4>
+                    <p className={`text-xs font-semibold ${estaLlana ? 'text-rose-600' : 'text-stone-400'}`}>
+                      {sillasOcupadas} de {sillasPorMesa} pases ocupados
+                    </p>
+                  </div>
+                  <span className={`px-2.5 py-1 text-xs font-bold rounded-full ${
+                    estaLlana 
+                      ? 'bg-rose-100 text-rose-700' 
+                      : asientosLibres === 0 
+                      ? 'bg-emerald-100 text-emerald-700' 
+                      : 'bg-stone-100 text-stone-600'
+                  }`}>
+                    {asientosLibres < 0 ? `+${Math.abs(asientosLibres)} Excedidos` : `${asientosLibres} libres`}
+                  </span>
+                </div>
+
+                {/* Lista de Familias sentadas en esta Mesa */}
+                <div className="space-y-2 min-h-[100px]">
+                  {familiasEnMesa.length === 0 ? (
+                    <div className="h-24 border border-dashed border-stone-200 rounded-2xl flex items-center justify-center text-xs text-stone-400">
+                      Mesa vacía
+                    </div>
+                  ) : (
+                    familiasEnMesa.map((inv) => (
+                      <div 
+                        key={inv.id} 
+                        className="p-2.5 bg-stone-50 rounded-xl border border-stone-200 flex items-center justify-between text-xs"
+                      >
+                        <div>
+                          <p className="font-bold text-stone-800">{inv.nombreFamilia}</p>
+                          <p className="text-[11px] text-stone-500">{inv.pasesAsignados} pases ({inv.pasesNinos} niños)</p>
+                        </div>
+                        <button 
+                          onClick={() => handleAsignarMesa(inv.id, null)}
+                          className="text-stone-400 hover:text-rose-600 font-bold px-1 text-sm"
+                          title="Quitar de esta mesa"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+    </div>
+  );
+}
