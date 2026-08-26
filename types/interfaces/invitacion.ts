@@ -25,3 +25,10 @@ export interface Invitado extends ConfirmacionProps {
   categoria: string;
   estatus: 'confirmado' | 'pendiente' | 'rechazado';
 }
+
+export interface TiempoRestante {
+  dias: number;
+  horas: number;
+  minutos: number;
+  segundos: number;
+}
