@@ -26,12 +26,12 @@ export default async function InvitacionPage({
   }
 
   return (
-    <main className="min-h-screen bg-stone-100 flex items-center justify-center p-0 md:p-6 lg:p-10">
+    <main className=" bg-stone-100 flex items-center justify-center p-0 md:p-6 lg:p-10">
       <div className="
         relative
         w-full
         max-w-[425px]
-        h-[100vh] md:h-[840px]
+        h-[690px]
         bg-invitation-bg-cream
         shadow-2xl
         rounded-none md:rounded-3xl
@@ -47,7 +47,7 @@ export default async function InvitacionPage({
             src="/suprederecha.png"
             alt="Decoración Superior Derecha"
             fill
-            className="object-cover object-top"
+            className="object-contain object-right"
             priority
           />
 
@@ -56,16 +56,17 @@ export default async function InvitacionPage({
             src="/marcoizqb.png"
             alt="Marco Izquierdo"
             fill
-            className="object-cover object-left"
+            className="object-contain object-left"
             priority
           />
 
           {/* Capa 3: Ilustración de la Virgencita */}
+          
           <Image
             src="/virgencita2.png"
             alt="Ilustración Virgencita"
+            className="object-contain object-right -translate-y-[50px]"
             fill
-            className="object-contain object-bottom-right"
             priority
           />
         </div>
