@@ -65,7 +65,7 @@ export default async function InvitacionPage({
             src="/virgencita2.png"
             alt="Ilustración Virgencita"
             fill
-            className="object-cover object-bottom-right"
+            className="object-contain object-bottom-right"
             priority
           />
         </div>
