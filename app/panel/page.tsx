@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import type { Metadata } from "next";
 
 import { 
   obtenerInvitados, 
@@ -30,13 +29,6 @@ function compartirWhatsApp(invitado: Invitado) {
   window.open(urlWhatsapp, '_blank', 'noopener,noreferrer');
 }
 
-export const metadata: Metadata = {
-  title: "Panel de Administración | Bautizo Sofía",
-  robots: {
-    index: false,
-    follow: false,
-  },
-};
 
 export default function Panel() {
   const [invitados, setInvitados] = useState<Invitado[]>([]);
