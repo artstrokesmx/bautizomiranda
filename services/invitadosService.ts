@@ -1,5 +1,5 @@
 // src/services/invitadosService.ts
-import { MOCK_INVITADOS, DATOS_EVENTO } from "@/lib/MockData"; // Asegúrate de coincidir mayúsculas/minúsculas del archivo
+import { MOCK_INVITADOS, DATOS_EVENTO } from "@/lib/MockData";
 import { Invitado } from "@/types/interfaces/invitacion";
 
 // Interfaz para el payload de confirmación
@@ -8,6 +8,12 @@ export interface ConfirmarAsistenciaPayload {
   confirmado: boolean;
   pasesConfirmados?: number;
   ninosConfirmados?: number;
+}
+
+export async function agregarInvitadoService(nuevoInvitado: Invitado): Promise<Invitado> {
+  await new Promise((resolve) => setTimeout(resolve, 200));
+  MOCK_INVITADOS.unshift(nuevoInvitado);
+  return nuevoInvitado;
 }
 
 // Simula la consulta por slug: SELECT * FROM invitados WHERE slug = slug

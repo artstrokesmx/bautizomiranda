@@ -24,6 +24,7 @@ export interface Invitado extends ConfirmacionProps {
   menuNinos: boolean;
   categoria: string;
   estatus: 'confirmado' | 'pendiente' | 'rechazado';
+  mesaAsignada?: number | null;
 }
 
 export interface TiempoRestante {

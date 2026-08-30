@@ -2,7 +2,15 @@
 
 import { useState } from 'react';
 import { ConfirmacionProps } from "@/types/interfaces/invitacion";
-import { confirmarAsistenciaService } from "@/services/invitadosService";
+// IMPORT CORREGIDO: Usamos el Server Action nuevo de Turso
+import { confirmarAsistenciaService } from "@/app/actions/invitados";
+
+// Extendemos opcionalmente la interfaz por si recibe el estatus inicial guardado en Turso
+interface Props extends ConfirmacionProps {
+  estatusInicial?: 'pendiente' | 'confirmado' | 'cancelado';
+  confirmadosAdultosInicial?: number;
+  confirmadosNinosInicial?: number;
+}
 
 export default function Confirmacion({
   idInvitado = "",
@@ -10,14 +18,24 @@ export default function Confirmacion({
   nombreFamilia,
   nombreInvitado,
   pasesNinos = 0,
-}: ConfirmacionProps) {
-  const [estatus, setEstatus] = useState<'pendiente' | 'confirmado' | 'rechazado'>('pendiente');
+  estatusInicial = 'pendiente',
+  confirmadosAdultosInicial,
+  confirmadosNinosInicial,
+}: Props) {
+  // Ajustamos estatus para usar 'cancelado' en lugar de 'rechazado'
+  const [estatus, setEstatus] = useState<'pendiente' | 'confirmado' | 'cancelado'>(
+    estatusInicial === 'cancelado' ? 'cancelado' : estatusInicial
+  );
   const [cargando, setCargando] = useState(false);
   const [mensajeError, setMensajeError] = useState<string | null>(null);
 
-  // Inicialización de estados basada en las props recibidas
-  const [adultos, setAdultos] = useState<number | ''>(pasesAsignados);
-  const [ninos, setNinos] = useState<number | ''>(pasesNinos);
+  // Inicialización de estados basada en las props o en la reserva previa
+  const [adultos, setAdultos] = useState<number | ''>(
+    confirmadosAdultosInicial ?? pasesAsignados
+  );
+  const [ninos, setNinos] = useState<number | ''>(
+    confirmadosNinosInicial ?? pasesNinos
+  );
 
   const numAdultos = typeof adultos === 'number' ? adultos : 0;
   const numNinos = typeof ninos === 'number' ? ninos : 0;
@@ -55,7 +73,6 @@ export default function Confirmacion({
       if (isNaN(parsed)) {
         setter('');
       } else {
-        // Si intenta ingresar manualmente un número mayor al máximo, se fuerza al tope permitido
         if (parsed > maximoPermitido) parsed = maximoPermitido;
         if (parsed < 0) parsed = 0;
         setter(parsed);
@@ -63,7 +80,7 @@ export default function Confirmacion({
     }
   };
 
-  // Función principal para enviar la asistencia
+  // Función principal para enviar la asistencia a Turso
   const responderAsistencia = async (confirmado: boolean) => {
     if (!idInvitado) {
       setMensajeError("No se encontró el identificador del invitado.");
@@ -83,17 +100,24 @@ export default function Confirmacion({
       return;
     }
 
+    const nuevoEstatus = confirmado ? 'confirmado' : 'cancelado';
+
     try {
-      await confirmarAsistenciaService({
-        idInvitado,
-        confirmado,
-        pasesConfirmados: confirmado ? cantidadAdultos : 0,
-        ninosConfirmados: confirmado ? cantidadNinos : 0,
+      // Llamada al Server Action de Turso
+      const res = await confirmarAsistenciaService({
+        id: idInvitado,
+        estatus: nuevoEstatus,
+        confirmadosAdultos: confirmado ? cantidadAdultos : 0,
+        confirmadosNinos: confirmado ? cantidadNinos : 0,
       });
 
-      setEstatus(confirmado ? 'confirmado' : 'rechazado');
+      if (res.success) {
+        setEstatus(nuevoEstatus);
+      } else {
+        setMensajeError(res.error || "Ocurrió un error al guardar tu respuesta.");
+      }
     } catch (error) {
-      console.error("Error al guardar asistencia:", error);
+      console.error("Error al guardar asistencia en Turso:", error);
       setMensajeError("Ocurrió un error al guardar tu respuesta. Por favor intenta de nuevo.");
     } finally {
       setCargando(false);
@@ -212,15 +236,31 @@ export default function Confirmacion({
 
       {/* Estatus Confirmado */}
       {estatus === 'confirmado' && (
-        <div className="p-4 bg-emerald-100/80 border border-emerald-300 text-emerald-900 rounded-2xl font-serif text-sm">
-          ¡Muchas gracias! Hemos guardado tu confirmación ({adultos || 0} adulto(s) y {ninos || 0} niño(s)). Nos dará mucho gusto ver a la {nombreFamilia}.
+        <div className="space-y-3">
+          <div className="p-4 bg-emerald-100/80 border border-emerald-300 text-emerald-900 rounded-2xl font-serif text-sm">
+            ¡Muchas gracias! Hemos guardado tu confirmación ({adultos || 0} adulto(s) y {ninos || 0} niño(s)). Nos dará mucho gusto ver a la {nombreFamilia}.
+          </div>
+          <button
+            onClick={() => setEstatus('pendiente')}
+            className="text-xs text-stone-500 underline hover:text-stone-700"
+          >
+            Cambiar respuesta
+          </button>
         </div>
       )}
 
-      {/* Estatus Rechazado */}
-      {estatus === 'rechazado' && (
-        <div className="p-4 bg-stone-200/80 border border-stone-300 text-stone-700 rounded-2xl font-serif text-sm">
-          Lamentamos que no nos puedan acompañar, muchas gracias por avisarnos.
+      {/* Estatus Cancelado / Rechazado */}
+      {estatus === 'cancelado' && (
+        <div className="space-y-3">
+          <div className="p-4 bg-stone-200/80 border border-stone-300 text-stone-700 rounded-2xl font-serif text-sm">
+            Lamentamos que no nos puedan acompañar, muchas gracias por avisarnos.
+          </div>
+          <button
+            onClick={() => setEstatus('pendiente')}
+            className="text-xs text-amber-800 font-bold underline hover:text-amber-900"
+          >
+            Cambiar respuesta
+          </button>
         </div>
       )}
 

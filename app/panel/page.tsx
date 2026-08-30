@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Invitado } from "@/types/interfaces/invitacion";
-import { obtenerTodosLosInvitados } from "@/services/invitadosService";
+// IMPORT CORREGIDO: Usamos únicamente el Server Action de Turso
+import { obtenerInvitados, agregarInvitadoService, Invitado } from '@/app/actions/invitados';
 
 // Helper para crear slugs limpios a partir del nombre
 const generarSlug = (nombre: string) => {
@@ -26,6 +26,8 @@ function compartirWhatsApp(invitado: Invitado) {
 
 export default function Panel() {
   const [invitados, setInvitados] = useState<Invitado[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Configuración de Mesas
   const [numMesas, setNumMesas] = useState<number>(6);
@@ -42,22 +44,29 @@ export default function Panel() {
   const [categoria, setCategoria] = useState('Familia Jessy');
   const [menuNinos, setMenuNinos] = useState(false);
 
-  // Cargar datos iniciales desde el servicio mock
+  // Cargar datos iniciales desde Turso
   useEffect(() => {
     async function cargarDatos() {
-      const datos = await obtenerTodosLosInvitados();
-      setInvitados(datos);
+      try {
+        const datos = await obtenerInvitados();
+        setInvitados(datos);
+      } catch (error) {
+        console.error('Error cargando invitados de Turso:', error);
+      } finally {
+        setLoading(false);
+      }
     }
     cargarDatos();
   }, []);
 
   // Agregar nuevo invitado
-  const handleAgregarInvitado = (e: React.FormEvent) => {
+  const handleAgregarInvitado = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nombreInvitado.trim()) return;
+    if (!nombreInvitado.trim() || isSubmitting) return;
 
-    const nuevoInvitado: Invitado = {
-      id: Date.now().toString(),
+    setIsSubmitting(true);
+
+    const datosNuevoInvitado = {
       slug: generarSlug(nombreInvitado),
       nombreInvitado,
       nombreFamilia: nombreFamilia || `Familia ${nombreInvitado.split(' ')[0]}`,
@@ -65,17 +74,37 @@ export default function Panel() {
       pasesNinos: Number(pasesNinos),
       categoria,
       menuNinos,
-      estatus: 'pendiente',
+      estatus: 'pendiente' as const,
     };
 
-    setInvitados((prev) => [nuevoInvitado, ...prev]);
+    try {
+      // Guardar en la base de datos de Turso
+      const res = await agregarInvitadoService(datosNuevoInvitado);
 
-    // Limpiar formulario
-    setNombreInvitado('');
-    setNombreFamilia('');
-    setPasesAsignados(2);
-    setPasesNinos(0);
-    setMenuNinos(false);
+      if (res.success && res.id) {
+        // Actualizar el estado local agregando el ID retornado por Turso
+        const invitadoCreado: Invitado = {
+          ...datosNuevoInvitado,
+          id: res.id,
+        };
+
+        setInvitados((prev) => [invitadoCreado, ...prev]);
+
+        // Limpiar formulario
+        setNombreInvitado('');
+        setNombreFamilia('');
+        setPasesAsignados(2);
+        setPasesNinos(0);
+        setMenuNinos(false);
+      } else {
+        alert('Hubo un error al guardar el invitado en Turso.');
+      }
+    } catch (error) {
+      console.error('Error al agregar el invitado:', error);
+      alert('Hubo un error inesperado al conectar con el servidor.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Asignar o remover una familia de una mesa
@@ -95,9 +124,9 @@ export default function Panel() {
   const totalPases = invitados.reduce((acc, curr) => acc + curr.pasesAsignados, 0);
   const confirmados = invitados.filter(i => i.estatus === 'confirmado').reduce((acc, curr) => acc + curr.pasesAsignados, 0);
   const pendientes = invitados.filter(i => i.estatus === 'pendiente').reduce((acc, curr) => acc + curr.pasesAsignados, 0);
-  const rechazados = invitados.filter(i => i.estatus === 'rechazado').reduce((acc, curr) => acc + curr.pasesAsignados, 0);
+  const rechazados = invitados.filter(i => i.estatus === 'cancelado').reduce((acc, curr) => acc + curr.pasesAsignados, 0);
 
-  // Invitados pendientes por asignar mesa (FIX)
+  // Invitados pendientes por asignar mesa
   const invitadosSinMesa = invitados.filter(inv => !asignacionesMesas[inv.id]);
 
   const categoriasDisponibles = ['Familia Jessy', 'Familia Arturo', 'Amigo Jessy', 'Amigo Arturo', 'Trabajo'];
@@ -194,9 +223,10 @@ export default function Panel() {
 
             <button 
               type="submit" 
-              className="w-full py-3 bg-amber-700 hover:bg-amber-800 text-white rounded-full text-sm font-bold shadow-md transition-all active:scale-95"
+              disabled={isSubmitting}
+              className="w-full py-3 bg-amber-700 hover:bg-amber-800 disabled:bg-stone-400 text-white rounded-full text-sm font-bold shadow-md transition-all active:scale-95"
             >
-              Guardar Invitado
+              {isSubmitting ? 'Guardando en Turso...' : 'Guardar Invitado'}
             </button>
           </form>
         </section>
@@ -242,46 +272,52 @@ export default function Panel() {
             </div>
           </div>
 
-          {/* Lista con Semáforo */}
+          {/* Lista de Invitados con Loader */}
           <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-sm space-y-4">
             <h3 className="text-lg font-bold text-stone-800">Lista de Invitados</h3>
 
-            <div className="divide-y divide-stone-100">
-              {invitados.map((inv) => (
-                <div key={inv.id} className="py-3 flex items-center justify-between text-sm flex-wrap gap-2">
-                  <div className="flex items-center gap-3">
-                    {inv.estatus === 'confirmado' && <span className="w-3.5 h-3.5 rounded-full bg-emerald-500 shadow-sm flex-shrink-0" title="Confirmado"></span>}
-                    {inv.estatus === 'pendiente' && <span className="w-3.5 h-3.5 rounded-full bg-amber-400 shadow-sm animate-pulse flex-shrink-0" title="Pendiente"></span>}
-                    {inv.estatus === 'rechazado' && <span className="w-3.5 h-3.5 rounded-full bg-rose-500 shadow-sm flex-shrink-0" title="Rechazado"></span>}
-                    
-                    <div>
-                      <p className="font-bold text-stone-800">{inv.nombreInvitado} <span className="text-stone-500 font-normal">({inv.nombreFamilia})</span></p>
-                      <p className="text-xs text-stone-400">{inv.categoria} • {inv.pasesAsignados} pases ({inv.pasesNinos} niños)</p>
+            {loading ? (
+              <p className="text-sm text-stone-400 text-center py-6">Cargando invitados desde Turso...</p>
+            ) : invitados.length === 0 ? (
+              <p className="text-sm text-stone-400 text-center py-6">No hay invitados registrados.</p>
+            ) : (
+              <div className="divide-y divide-stone-100">
+                {invitados.map((inv) => (
+                  <div key={inv.id} className="py-3 flex items-center justify-between text-sm flex-wrap gap-2">
+                    <div className="flex items-center gap-3">
+                      {inv.estatus === 'confirmado' && <span className="w-3.5 h-3.5 rounded-full bg-emerald-500 shadow-sm flex-shrink-0" title="Confirmado"></span>}
+                      {inv.estatus === 'pendiente' && <span className="w-3.5 h-3.5 rounded-full bg-amber-400 shadow-sm animate-pulse flex-shrink-0" title="Pendiente"></span>}
+                      {inv.estatus === 'cancelado' && <span className="w-3.5 h-3.5 rounded-full bg-rose-500 shadow-sm flex-shrink-0" title="Cancelado"></span>}
+                      
+                      <div>
+                        <p className="font-bold text-stone-800">{inv.nombreInvitado} <span className="text-stone-500 font-normal">({inv.nombreFamilia})</span></p>
+                        <p className="text-xs text-stone-400">{inv.categoria} • {inv.pasesAsignados} pases ({inv.pasesNinos} niños)</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => {
+                          const url = `${window.location.origin}/invitado/${inv.slug}`;
+                          navigator.clipboard.writeText(url);
+                          alert('¡Enlace copiado al portapapeles!');
+                        }}
+                        className="text-xs px-3 py-1 bg-stone-100 hover:bg-stone-200 rounded-lg text-stone-600 transition-colors"
+                      >
+                        Copiar Enlace
+                      </button>
+
+                      <button 
+                        onClick={() => compartirWhatsApp(inv)}
+                        className="text-xs px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition-colors flex items-center gap-1"
+                      >
+                        WhatsApp
+                      </button>
                     </div>
                   </div>
-
-                  <div className="flex items-center gap-2">
-                    <button 
-                      onClick={() => {
-                        const url = `${window.location.origin}/invitado/${inv.slug}`;
-                        navigator.clipboard.writeText(url);
-                        alert('¡Enlace copiado al portapapeles!');
-                      }}
-                      className="text-xs px-3 py-1 bg-stone-100 hover:bg-stone-200 rounded-lg text-stone-600 transition-colors"
-                    >
-                      Copiar Enlace
-                    </button>
-
-                    <button 
-                      onClick={() => compartirWhatsApp(inv)}
-                      className="text-xs px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition-colors flex items-center gap-1"
-                    >
-                      WhatsApp
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </section>
       </div>
