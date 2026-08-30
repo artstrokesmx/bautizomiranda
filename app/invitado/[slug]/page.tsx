@@ -1,4 +1,5 @@
 import Image from "next/image";
+import type { Metadata } from 'next';
 
 import Bienvenida from '@/app/componentes/Bienvenida';
 import Contador from "@/app/componentes/Contador";
@@ -9,6 +10,38 @@ import Confirmacion from "@/app/componentes/Confirmacion";
 
 // IMPORT ACTUALIZADO: Traemos la función desde el Server Action con Turso
 import { obtenerInvitadoPorSlug } from "@/app/actions/invitados";
+
+type Props = {
+  params: Promise<{ slug: string }>;
+};
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
+  const invitado = await obtenerInvitadoPorSlug(slug);
+
+  if (!invitado) {
+    return {
+      title: 'Invitación no encontrada',
+    };
+  }
+
+  const tituloPersonalizado = `Invitación para ${invitado.nombreFamilia}`;
+  const descripcionPersonalizada = `¡Hola! Acompáñanos a celebrar el Bautizo de Sofía Miranda. Pases asignados: ${invitado.pasesAsignados}.`;
+
+  return {
+    title: tituloPersonalizado,
+    description: descripcionPersonalizada,
+    openGraph: {
+      title: tituloPersonalizado,
+      description: descripcionPersonalizada,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: tituloPersonalizado,
+      description: descripcionPersonalizada,
+    },
+  };
+}
 
 export default async function InvitacionPage({
   params,
