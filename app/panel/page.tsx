@@ -1,18 +1,22 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-// IMPORT CORREGIDO: Usamos únicamente el Server Action de Turso
-import { obtenerInvitados, agregarInvitadoService, Invitado } from '@/app/actions/invitados';
+import { 
+  obtenerInvitados, 
+  agregarInvitadoService, 
+  eliminarInvitadoService, 
+  actualizarInvitadoService, 
+  Invitado 
+} from '@/app/actions/invitados';
 
-// Helper para crear slugs limpios a partir del nombre
 const generarSlug = (nombre: string) => {
   return nombre
     .toLowerCase()
     .trim()
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '') // Quita acentos
-    .replace(/[^a-z0-9 -]/g, '')     // Quita caracteres especiales
-    .replace(/\s+/g, '-')            // Reemplaza espacios por guiones
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9 -]/g, '')
+    .replace(/\s+/g, '-')
     .replace(/-+/g, '-');
 };
 
@@ -32,8 +36,6 @@ export default function Panel() {
   // Configuración de Mesas
   const [numMesas, setNumMesas] = useState<number>(6);
   const [sillasPorMesa, setSillasPorMesa] = useState<number>(10);
-  
-  // Guardará qué mesa tiene asignado a cada invitado: { [invitadoId]: numeroDeMesa }
   const [asignacionesMesas, setAsignacionesMesas] = useState<Record<string, number>>({});
 
   // Estado para el formulario de nuevo invitado
@@ -44,7 +46,9 @@ export default function Panel() {
   const [categoria, setCategoria] = useState('Familia Jessy');
   const [menuNinos, setMenuNinos] = useState(false);
 
-  // Cargar datos iniciales desde Turso
+  // Estado para edición en Modal
+  const [invitadoAEditar, setInvitadoAEditar] = useState<Invitado | null>(null);
+
   useEffect(() => {
     async function cargarDatos() {
       try {
@@ -59,7 +63,6 @@ export default function Panel() {
     cargarDatos();
   }, []);
 
-  // Agregar nuevo invitado
   const handleAgregarInvitado = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!nombreInvitado.trim() || isSubmitting) return;
@@ -78,11 +81,9 @@ export default function Panel() {
     };
 
     try {
-      // Guardar en la base de datos de Turso
       const res = await agregarInvitadoService(datosNuevoInvitado);
 
       if (res.success && res.id) {
-        // Actualizar el estado local agregando el ID retornado por Turso
         const invitadoCreado: Invitado = {
           ...datosNuevoInvitado,
           id: res.id,
@@ -90,7 +91,6 @@ export default function Panel() {
 
         setInvitados((prev) => [invitadoCreado, ...prev]);
 
-        // Limpiar formulario
         setNombreInvitado('');
         setNombreFamilia('');
         setPasesAsignados(2);
@@ -107,12 +107,59 @@ export default function Panel() {
     }
   };
 
-  // Asignar o remover una familia de una mesa
+  // 🗑️ Función para eliminar invitado
+  const handleEliminarInvitado = async (id: string, nombre: string) => {
+    if (!confirm(`¿Estás seguro de que deseas eliminar a "${nombre}"?`)) return;
+
+    try {
+      const res = await eliminarInvitadoService(id);
+      if (res.success) {
+        setInvitados((prev) => prev.filter((i) => i.id !== id));
+        // Remover de la asignación de mesas si estaba asignado
+        handleAsignarMesa(id, null);
+      } else {
+        alert(res.error || 'No se pudo eliminar el invitado.');
+      }
+    } catch (error) {
+      console.error('Error al eliminar invitado:', error);
+      alert('Ocurrió un error inesperado.');
+    }
+  };
+
+  // ✏️ Función para guardar la edición de invitado
+// ✅ CÓDIGO CORREGIDO:
+const handleGuardarEdicion = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!invitadoAEditar) return;
+
+  setIsSubmitting(true);
+
+  try {
+    const res = await actualizarInvitadoService(invitadoAEditar);
+    if (res.success) {
+      const nuevoSlug = res.slug || invitadoAEditar.slug;
+      const invitadoActualizado = { ...invitadoAEditar, slug: nuevoSlug };
+
+      setInvitados((prev) =>
+        prev.map((i) => (i.id === invitadoAEditar.id ? invitadoActualizado : i))
+      );
+      setInvitadoAEditar(null);
+    } else {
+      alert(res.error || 'Error al actualizar el invitado.');
+    }
+  } catch (error) {
+    console.error('Error al actualizar:', error);
+    alert('Ocurrió un error al guardar la edición.');
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
   const handleAsignarMesa = (invitadoId: string, mesaNumero: number | null) => {
     setAsignacionesMesas((prev) => {
       const copy = { ...prev };
       if (mesaNumero === null) {
-        delete copy[invitadoId]; // Sin asignar
+        delete copy[invitadoId];
       } else {
         copy[invitadoId] = mesaNumero;
       }
@@ -120,15 +167,12 @@ export default function Panel() {
     });
   };
 
-  // Cálculos de métricas dinámicas
   const totalPases = invitados.reduce((acc, curr) => acc + curr.pasesAsignados, 0);
   const confirmados = invitados.filter(i => i.estatus === 'confirmado').reduce((acc, curr) => acc + curr.pasesAsignados, 0);
   const pendientes = invitados.filter(i => i.estatus === 'pendiente').reduce((acc, curr) => acc + curr.pasesAsignados, 0);
   const rechazados = invitados.filter(i => i.estatus === 'cancelado').reduce((acc, curr) => acc + curr.pasesAsignados, 0);
 
-  // Invitados pendientes por asignar mesa
   const invitadosSinMesa = invitados.filter(inv => !asignacionesMesas[inv.id]);
-
   const categoriasDisponibles = ['Familia Jessy', 'Familia Arturo', 'Amigo Jessy', 'Amigo Arturo', 'Trabajo'];
 
   return (
@@ -272,7 +316,7 @@ export default function Panel() {
             </div>
           </div>
 
-          {/* Lista de Invitados con Loader */}
+          {/* Lista de Invitados */}
           <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-sm space-y-4">
             <h3 className="text-lg font-bold text-stone-800">Lista de Invitados</h3>
 
@@ -295,21 +339,37 @@ export default function Panel() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <button 
+                        onClick={() => setInvitadoAEditar(inv)}
+                        className="text-xs px-2.5 py-1 bg-amber-100 hover:bg-amber-200 text-amber-900 rounded-lg font-bold transition-colors"
+                        title="Editar invitado"
+                      >
+                        ✏️ Editar
+                      </button>
+
+                      <button 
+                        onClick={() => handleEliminarInvitado(inv.id, inv.nombreInvitado)}
+                        className="text-xs px-2.5 py-1 bg-rose-100 hover:bg-rose-200 text-rose-700 rounded-lg font-bold transition-colors"
+                        title="Eliminar invitado"
+                      >
+                        🗑️
+                      </button>
+
                       <button 
                         onClick={() => {
                           const url = `${window.location.origin}/invitado/${inv.slug}`;
                           navigator.clipboard.writeText(url);
                           alert('¡Enlace copiado al portapapeles!');
                         }}
-                        className="text-xs px-3 py-1 bg-stone-100 hover:bg-stone-200 rounded-lg text-stone-600 transition-colors"
+                        className="text-xs px-2.5 py-1 bg-stone-100 hover:bg-stone-200 rounded-lg text-stone-600 transition-colors"
                       >
-                        Copiar Enlace
+                        Enlace
                       </button>
 
                       <button 
                         onClick={() => compartirWhatsApp(inv)}
-                        className="text-xs px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition-colors flex items-center gap-1"
+                        className="text-xs px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition-colors flex items-center gap-1"
                       >
                         WhatsApp
                       </button>
@@ -322,6 +382,105 @@ export default function Panel() {
         </section>
       </div>
 
+      {/* MODAL DE EDICIÓN DE INVITADO */}
+      {invitadoAEditar && (
+        <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-xl w-full max-w-md space-y-4">
+            <h3 className="text-xl font-bold text-amber-900 border-b pb-2">Editar Invitado</h3>
+            
+            <form onSubmit={handleGuardarEdicion} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold mb-1">Nombre del invitado:</label>
+                <input 
+                  type="text" 
+                  required
+                  value={invitadoAEditar.nombreInvitado}
+                  onChange={(e) => setInvitadoAEditar({ ...invitadoAEditar, nombreInvitado: e.target.value })}
+                  className="w-full p-2.5 text-sm rounded-xl bg-stone-100 border border-stone-200"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold mb-1">Nombre de la Familia:</label>
+                <input 
+                  type="text" 
+                  value={invitadoAEditar.nombreFamilia}
+                  onChange={(e) => setInvitadoAEditar({ ...invitadoAEditar, nombreFamilia: e.target.value })}
+                  className="w-full p-2.5 text-sm rounded-xl bg-stone-100 border border-stone-200"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold mb-1">Total Pases:</label>
+                  <input 
+                    type="number" 
+                    min="1"
+                    value={invitadoAEditar.pasesAsignados}
+                    onChange={(e) => setInvitadoAEditar({ ...invitadoAEditar, pasesAsignados: Number(e.target.value) })}
+                    className="w-full p-2.5 text-sm rounded-xl bg-stone-100 border border-stone-200"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold mb-1">Niños:</label>
+                  <input 
+                    type="number" 
+                    min="0"
+                    max={invitadoAEditar.pasesAsignados}
+                    value={invitadoAEditar.pasesNinos}
+                    onChange={(e) => setInvitadoAEditar({ ...invitadoAEditar, pasesNinos: Number(e.target.value) })}
+                    className="w-full p-2.5 text-sm rounded-xl bg-stone-100 border border-stone-200"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold mb-1">Tipo de invitado:</label>
+                <select 
+                  value={invitadoAEditar.categoria}
+                  onChange={(e) => setInvitadoAEditar({ ...invitadoAEditar, categoria: e.target.value })}
+                  className="w-full p-2.5 text-sm rounded-xl bg-stone-100 border border-stone-200"
+                >
+                  {categoriasDisponibles.map((cat) => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex items-center gap-2 pt-1">
+                <input 
+                  type="checkbox" 
+                  id="menuNinosEditar" 
+                  checked={invitadoAEditar.menuNinos}
+                  onChange={(e) => setInvitadoAEditar({ ...invitadoAEditar, menuNinos: e.target.checked })}
+                  className="w-4 h-4 text-pink-500 rounded accent-pink-400 cursor-pointer" 
+                />
+                <label htmlFor="menuNinosEditar" className="text-xs font-medium cursor-pointer select-none">
+                  ¿Requiere menú infantil?
+                </label>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setInvitadoAEditar(null)}
+                  className="px-4 py-2 bg-stone-200 hover:bg-stone-300 rounded-full text-xs font-bold text-stone-700"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-4 py-2 bg-amber-700 hover:bg-amber-800 disabled:bg-stone-400 text-white rounded-full text-xs font-bold shadow-sm"
+                >
+                  {isSubmitting ? 'Guardando...' : 'Guardar Cambios'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* CROQUIS Y GESTOR INTERACTIVO DE MESAS */}
       <section className="bg-white p-6 rounded-3xl border border-stone-200 shadow-sm space-y-6 w-full">
         <div className="flex flex-col md:flex-row md:items-center justify-between border-b pb-4 gap-4">
@@ -330,7 +489,6 @@ export default function Panel() {
             <p className="text-xs text-stone-500">Asigna las familias y sus pases completos en cada mesa.</p>
           </div>
 
-          {/* Configuración de Capacidad */}
           <div className="flex items-center gap-4 bg-stone-50 p-3 rounded-2xl border border-stone-200 text-xs">
             <div className="flex items-center gap-2">
               <label className="font-bold">Total Mesas:</label>
@@ -395,11 +553,7 @@ export default function Panel() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {Array.from({ length: numMesas }, (_, index) => {
             const numeroMesa = index + 1;
-            
-            // Familias asignadas a esta mesa específica
             const familiasEnMesa = invitados.filter(inv => asignacionesMesas[inv.id] === numeroMesa);
-            
-            // Total de sillas ocupadas en esta mesa
             const sillasOcupadas = familiasEnMesa.reduce((acc, curr) => acc + curr.pasesAsignados, 0);
             const asientosLibres = sillasPorMesa - sillasOcupadas;
             const estaLlana = sillasOcupadas > sillasPorMesa;
@@ -413,7 +567,6 @@ export default function Panel() {
                     : 'bg-white border-stone-200 shadow-sm'
                 }`}
               >
-                {/* Cabecera de la Mesa */}
                 <div className="flex items-center justify-between border-b pb-3 mb-3">
                   <div>
                     <h4 className="font-bold text-stone-800 text-base">Mesa {numeroMesa}</h4>
@@ -432,7 +585,6 @@ export default function Panel() {
                   </span>
                 </div>
 
-                {/* Lista de Familias sentadas en esta Mesa */}
                 <div className="space-y-2 min-h-[100px]">
                   {familiasEnMesa.length === 0 ? (
                     <div className="h-24 border border-dashed border-stone-200 rounded-2xl flex items-center justify-center text-xs text-stone-400">

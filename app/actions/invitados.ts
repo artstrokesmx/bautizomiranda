@@ -1,6 +1,6 @@
 'use server';
 
-import { db } from '@/lib/turso'; // Ajusta la ruta a tu archivo turso.ts si es necesario
+import { db } from '@/lib/turso'; // Se usa 'db' de forma consistente en todo el archivo
 import { revalidatePath } from 'next/cache';
 
 export interface Invitado {
@@ -41,7 +41,7 @@ export async function obtenerInvitados(): Promise<Invitado[]> {
   }
 }
 
-// 2. Obtener un invitado por su Slug (para la vista de invitación /invitado/[slug])
+// 2. Obtener un invitado por su Slug
 export async function obtenerInvitadoPorSlug(slug: string): Promise<Invitado | null> {
   try {
     const result = await db.execute({
@@ -74,7 +74,7 @@ export async function obtenerInvitadoPorSlug(slug: string): Promise<Invitado | n
 // 3. Agregar un nuevo invitado a Turso
 export async function agregarInvitadoService(invitado: Omit<Invitado, 'id'>) {
   try {
-    const id = crypto.randomUUID(); // Generamos UUID único en el servidor
+    const id = crypto.randomUUID();
 
     await db.execute({
       sql: `INSERT INTO invitados (
@@ -88,12 +88,11 @@ export async function agregarInvitadoService(invitado: Omit<Invitado, 'id'>) {
         invitado.pasesAsignados,
         invitado.pasesNinos,
         invitado.categoria,
-        invitado.menuNinos ? 1 : 0, // Convertimos boolean a 1 o 0 para SQLite
+        invitado.menuNinos ? 1 : 0,
         invitado.estatus,
       ],
     });
 
-    // Revalidar las rutas para refrescar datos
     revalidatePath('/admin');
     revalidatePath('/panel');
 
@@ -134,7 +133,7 @@ export async function confirmarAsistenciaService(datos: {
   }
 }
 
-// 5. Eliminar invitado desde el panel
+// 5. Eliminar invitado desde el panel (Única definición)
 export async function eliminarInvitadoService(id: string) {
   try {
     await db.execute({
@@ -147,7 +146,54 @@ export async function eliminarInvitadoService(id: string) {
 
     return { success: true };
   } catch (error) {
-    console.error('Error al eliminar invitado:', error);
-    return { success: false, error: 'No se pudo eliminar el invitado' };
+    console.error('Error al eliminar invitado en Turso:', error);
+    return { success: false, error: 'No se pudo eliminar el invitado.' };
+  }
+}
+
+// 6. Actualizar invitado desde el panel (Nombres de columna corregidos)
+export async function actualizarInvitadoService(invitado: Invitado) {
+  try {
+    // Generar nuevo slug por si cambió el nombre
+    const nuevoSlug = invitado.nombreInvitado
+      .toLowerCase()
+      .trim()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9 -]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-');
+
+    await db.execute({
+      sql: `
+        UPDATE invitados 
+        SET nombre_invitado = ?, 
+            nombre_familia = ?, 
+            pases_asignados = ?, 
+            pases_ninos = ?, 
+            categoria = ?, 
+            menu_ninos = ?,
+            slug = ?
+        WHERE id = ?
+      `,
+      args: [
+        invitado.nombreInvitado,
+        invitado.nombreFamilia,
+        invitado.pasesAsignados,
+        invitado.pasesNinos,
+        invitado.categoria,
+        invitado.menuNinos ? 1 : 0,
+        nuevoSlug,
+        invitado.id,
+      ],
+    });
+
+    revalidatePath('/admin');
+    revalidatePath('/panel');
+
+    return { success: true, slug: nuevoSlug };
+  } catch (error) {
+    console.error('Error al actualizar invitado en Turso:', error);
+    return { success: false, error: 'No se pudo actualizar el invitado.' };
   }
 }
