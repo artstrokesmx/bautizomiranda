@@ -17,11 +17,11 @@ export default function Bienvenida({
       </div>
       <div className="py-1.5 px-4 bg-amber-50/60 rounded-full border border-amber-200/50 inline-block">
         <p className="font-serif text-sm md:text-base text-invitation-text-brown">
-          ¡Hola, <span className="font-bold">{nombreInvitado}</span>!
+          ¡Hola,<br/> <span className="font-bold text-xl text-amber-400">{nombreInvitado}</span>!
         </p>
       </div>
       <p>Te invito a ti y a toda tu familia {nombreFamilia}<br/> a:</p>
-      <span className="uppercase tracking-[0.3em] text-xs md:text-sm text-invitation-gold-accent font-semibold mb-2 block">
+      <span className="uppercase tracking-[0.3em] text-xl md:text-sm text-invitation-gold-accent font-semibold mb-2 block">
         Mi Bautizo
       </span>
       <h1 className="text-4xl md:text-6xl font-script text-pink-400 mb-4 tracking-tight">

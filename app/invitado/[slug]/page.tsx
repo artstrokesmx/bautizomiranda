@@ -53,7 +53,7 @@ export default async function InvitacionPage({
 
   // Datos estáticos del evento (o puedes mantener tu servicio si ya existe)
   const evento = {
-    nombreBebe: "Lucía", // Cambia esto por el nombre de tu bebé
+    nombreBebe: "Miranda Sofía",
   };
 
   if (!invitado) {
@@ -84,7 +84,7 @@ export default async function InvitacionPage({
         {/* ======================================================== */}
         {/* CAPA DE MARCO FIJO                                       */}
         {/* ======================================================== */}
-        <div className="absolute inset-0 z-20 pointer-events-none">
+        <div className="fixed inset-0 z-20 pointer-events-none">
           {/* Capa 1: Esquina Superior Derecha */}
           <Image
             src="/suprederecha.png"
@@ -107,7 +107,7 @@ export default async function InvitacionPage({
           <Image
             src="/virgencita2.png"
             alt="Ilustración Virgencita"
-            className="object-contain object-right -translate-y-[50px]"
+            className="object-contain object-right"
             fill
             priority
           />
@@ -138,8 +138,6 @@ export default async function InvitacionPage({
           />
           <Contador />
           <Ubicacion />
-          <Mesa />
-          <Itinerario />
 
           <div className="mt-8 p-6 bg-white rounded-2xl shadow-sm border border-amber-200 max-w-sm w-full space-y-4">
             <p className="text-sm text-stone-600">
