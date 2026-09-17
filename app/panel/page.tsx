@@ -23,7 +23,7 @@ const generarSlug = (nombre: string) => {
 
 function compartirWhatsApp(invitado: Invitado) {
   const urlInvitacion = `${window.location.origin}/invitado/${invitado.slug}`;
-  const mensaje = `¡Hola ${invitado.nombreInvitado}! 👋✨\nNos encantaría que nos acompañaras en el bautizo. Diseñamos una invitación especial para ti:\n\n👉 ${urlInvitacion}`;
+  const mensaje = `¡Hola ${invitado.nombreInvitado}! 👋✨ Nos encantaría que nos acompañaras en el bautizo de Miranda Sofía. Tenemos una invitación especial para ti: 👉 ${urlInvitacion}`;
   const urlWhatsapp = `https://wa.me/?text=${encodeURIComponent(mensaje)}`;
   
   window.open(urlWhatsapp, '_blank', 'noopener,noreferrer');
