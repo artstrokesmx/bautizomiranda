@@ -84,13 +84,13 @@ export default async function InvitacionPage({
         {/* ======================================================== */}
         {/* CAPA DE MARCO FIJO                                       */}
         {/* ======================================================== */}
-        <div className="fixed inset-0 z-20 pointer-events-none">
+        <div className="absolute inset-0 z-20 pointer-events-none">
           {/* Capa 1: Esquina Superior Derecha */}
           <Image
             src="/suprederecha.png"
             alt="Decoración Superior Derecha"
             fill
-            className="object-contain object-right"
+            className="object-contain object-top-right"
             priority
           />
 
@@ -99,7 +99,7 @@ export default async function InvitacionPage({
             src="/marcoizqb.png"
             alt="Marco Izquierdo"
             fill
-            className="object-contain object-left"
+            className="object-contain object-top-left"
             priority
           />
 
@@ -107,7 +107,7 @@ export default async function InvitacionPage({
           <Image
             src="/virgencita2.png"
             alt="Ilustración Virgencita"
-            className="object-contain object-right"
+            className="object-contain object-top-right"
             fill
             priority
           />
