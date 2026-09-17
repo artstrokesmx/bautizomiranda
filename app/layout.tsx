@@ -21,6 +21,9 @@ const baseUrl = process.env.NEXT_PUBLIC_SITE_URL
 export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),
   title: "Bautizo de Sofía Miranda",
+  icons:{
+    icon: "/favicon.png",
+  },
   description: "Amando a Dios, la vida y la familia.",
   openGraph: {
     title: "Bautizo de Sofía Miranda",

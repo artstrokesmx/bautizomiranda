@@ -72,6 +72,7 @@ export default function Contador() {
       <p className="text-invitation-gold-accent font-bold text-xl capitalize min-h-6">
         {fechaTexto || '\u00A0'}
       </p>
+      <p className="text-invitation-gold-accent font-bold text-xl min-h-6">11:00 a.m.</p>
 
       <div className="flex justify-center gap-3 md:gap-6 my-6">
         {Object.entries(timeLeft).map(([unit, value]) => (

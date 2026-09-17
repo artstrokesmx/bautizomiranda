@@ -4,11 +4,8 @@ import type { Metadata } from 'next';
 import Bienvenida from '@/app/componentes/Bienvenida';
 import Contador from "@/app/componentes/Contador";
 import Ubicacion from "@/app/componentes/Ubicacion";
-import Mesa from "@/app/componentes/MesaRegalos";
-import Itinerario from "@/app/componentes/Itinerario";
 import Confirmacion from "@/app/componentes/Confirmacion";
 
-// IMPORT ACTUALIZADO: Traemos la función desde el Server Action con Turso
 import { obtenerInvitadoPorSlug } from "@/app/actions/invitados";
 
 type Props = {
@@ -28,12 +25,26 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const tituloPersonalizado = `Invitación para ${invitado.nombreFamilia}`;
   const descripcionPersonalizada = `¡Hola! Acompáñanos a celebrar el Bautizo de Sofía Miranda. Pases asignados: ${invitado.pasesAsignados}.`;
 
+  const imagenOG = 'https://bautizomiranda.vercel.app/virgencitafb.png';
+
   return {
     title: tituloPersonalizado,
     description: descripcionPersonalizada,
     openGraph: {
+      type: 'website',
+      locale: 'es_MX',
+      url: `https://bautizomiranda.vercel.app/invitacion/${slug}`,
+      siteName: 'Bautizo Miranda Sofía',
       title: tituloPersonalizado,
       description: descripcionPersonalizada,
+      images: [
+        {
+          url: imagenOG,
+          width: 1200,
+          height: 630,
+          alt: `Invitación de Bautizo para ${invitado.nombreFamilia}`,
+        },
+      ],
     },
     twitter: {
       card: 'summary_large_image',
@@ -70,11 +81,12 @@ export default async function InvitacionPage({
   }
 
   return (
-    <main className="bg-stone-100 flex items-center justify-center p-0 md:p-6 lg:p-10">
+    <main className="min-h-screen bg-stone-100 flex items-center justify-center p-0 md:p-6 lg:p-10">
       <div className="
         relative
         w-full
         max-w-[425px]
+        h-[100vh] md:h-[840px]
         bg-invitation-bg-cream
         shadow-2xl
         rounded-none md:rounded-3xl
@@ -90,7 +102,7 @@ export default async function InvitacionPage({
             src="/suprederecha.png"
             alt="Decoración Superior Derecha"
             fill
-            className="object-contain object-top-right"
+            className="object-cover object-top"
             priority
           />
 
@@ -99,7 +111,7 @@ export default async function InvitacionPage({
             src="/marcoizqb.png"
             alt="Marco Izquierdo"
             fill
-            className="object-contain object-top-left"
+            className="object-cover object-top"
             priority
           />
 
@@ -107,7 +119,7 @@ export default async function InvitacionPage({
           <Image
             src="/virgencita2.png"
             alt="Ilustración Virgencita"
-            className="object-contain object-top-right"
+            className="object-cover object-top"
             fill
             priority
           />

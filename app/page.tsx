@@ -3,8 +3,6 @@ import Image from "next/image";
 import Bienvenida from '@/app/componentes/Bienvenida';
 import Contador from "@/app/componentes/Contador";
 import Ubicacion from "@/app/componentes/Ubicacion";
-import Mesa from "@/app/componentes/MesaRegalos";
-import Itinerario from "@/app/componentes/Itinerario"
 
 export default function Home() {
   return (
@@ -79,8 +77,6 @@ export default function Home() {
           <Bienvenida />
           <Contador />
           <Ubicacion />
-          <Mesa />
-          <Itinerario/>
         </div>
 
       </div>
