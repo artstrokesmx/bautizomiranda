@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { TiempoRestante } from '@/types/interfaces/invitacion';
 
-const FECHA_BAUTIZO = '2026-10-24T10:00:00';
+const FECHA_BAUTIZO = '2026-10-24T11:00:00';
 
 const TIEMPO_INICIAL: TiempoRestante = {
   dias: 0,
