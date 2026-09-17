@@ -23,7 +23,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 
   const tituloPersonalizado = `Invitación para ${invitado.nombreFamilia}`;
-  const descripcionPersonalizada = `¡Hola! Acompáñanos a celebrar el Bautizo de Sofía Miranda. Pases asignados: ${invitado.pasesAsignados}.`;
+  const descripcionPersonalizada = `¡Hola ${invitado.nombreInvitado}! Acompáñanos a celebrar el Bautizo de Sofía Miranda.`;
 
   const imagenOG = 'https://bautizomiranda.vercel.app/virgencitafb.png';
 
