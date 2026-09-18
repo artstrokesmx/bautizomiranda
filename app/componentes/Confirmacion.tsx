@@ -15,7 +15,6 @@ interface Props extends ConfirmacionProps {
 export default function Confirmacion({
   idInvitado = "",
   pasesAsignados = 1,
-  nombreFamilia,
   nombreInvitado,
   pasesNinos = 0,
   estatusInicial = 'pendiente',
@@ -135,11 +134,7 @@ export default function Confirmacion({
       </h2>
 
       <p className="font-serif text-sm text-invitation-text-brown">
-        {nombreInvitado ? `Hola ${nombreInvitado}, confirma tu asistencia y la de la` : 'Confirma la asistencia de la'}
-      </p>
-
-      <p className="font-serif text-sm text-invitation-text-brown font-semibold mb-1">
-        {nombreFamilia}
+        {nombreInvitado ? `Hola ${nombreInvitado}, confirma tu asistencia al Bautizo de Sofía Miranda.` : "Confirma tu asistencia al Bautizo de Sofía Miranda."}
       </p>
 
       <p className="font-serif text-xs text-invitation-text-brown/80 mb-4">
@@ -238,7 +233,7 @@ export default function Confirmacion({
       {estatus === 'confirmado' && (
         <div className="space-y-3">
           <div className="p-4 bg-emerald-100/80 border border-emerald-300 text-emerald-900 rounded-2xl font-serif text-sm">
-            ¡Muchas gracias! Hemos guardado tu confirmación ({adultos || 0} adulto(s) y {ninos || 0} niño(s)). Nos dará mucho gusto ver a la {nombreFamilia}.
+            ¡Muchas gracias! Hemos guardado tu confirmación ({adultos || 0} adulto(s) y {ninos || 0} niño(s)).
           </div>
           <button
             onClick={() => setEstatus('pendiente')}

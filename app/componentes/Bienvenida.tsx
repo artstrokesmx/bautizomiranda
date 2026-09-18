@@ -3,7 +3,7 @@ import {BienvenidaProps} from "@/types/interfaces/invitacion"
 export default function Bienvenida({
   nombreBebe = "Miranda Sofía",
   nombreInvitado = "Juanito",
-  nombreFamilia = "Familia Pérez",
+  //nombreFamilia = "Familia Pérez",
 }:BienvenidaProps) {
   return (
     <section className="text-center max-w-2xl mt-8 m-5">
@@ -20,7 +20,7 @@ export default function Bienvenida({
           ¡Hola,<br/> <span className="font-bold text-xl text-amber-400">{nombreInvitado}</span>!
         </p>
       </div>
-      <p>Te invito a ti y a toda tu familia {nombreFamilia}<br/> a:</p>
+      <p>Nos complace invitarte<br/> a:</p>
       <span className="uppercase tracking-[0.3em] text-xl md:text-sm text-invitation-gold-accent font-semibold mb-2 block">
         Mi Bautizo
       </span>
