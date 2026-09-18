@@ -86,7 +86,7 @@ export default async function InvitacionPage({
         relative
         w-full
         max-w-[425px]
-        h-[745px]
+        h-[100vh]
         bg-invitation-bg-cream
         shadow-2xl
         rounded-none md:rounded-3xl
