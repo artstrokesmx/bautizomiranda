@@ -134,7 +134,7 @@ export default function Confirmacion({
       </h2>
 
       <p className="font-serif text-sm text-invitation-text-brown">
-        {nombreInvitado ? `Hola ${nombreInvitado}, confirma tu asistencia al Bautizo de Sofía Miranda.` : "Confirma tu asistencia al Bautizo de Sofía Miranda."}
+        {nombreInvitado ? `Hola ${nombreInvitado}, confirma tu asistencia al Bautizo de Miranda Sofía.` : "Confirma tu asistencia al Bautizo de Sofía Miranda."}
       </p>
 
       <p className="font-serif text-xs text-invitation-text-brown/80 mb-4">

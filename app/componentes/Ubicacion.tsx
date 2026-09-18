@@ -15,6 +15,7 @@ export default function Ubicación(){
             <div className=" bg-amber-50/60 rounded-2xl border border-amber-200/50">
                 <p className="mt-6">Después de la celebración Eucarística, tendremos una breve recepción en la que podremos compartir y convivir festejando la alegría de tener a<br/>
             <span className="text-pink-400 font-medium text-2xl font-script">Miranda Sofía</span><br/>con nosotros, en compañía de Dios y de nuestra familia y amigos.</p>
+            <p className="text-2xl text-amber-400 font-script tracking-widest">A partir de la<br/>1:00<br/> de la tarde</p>
             </div>
             <p className="mt-6">Los esperamos en<br/> <span className=" font-script text-2xl text-pink-400">Terraza Tenayuca</span></p>
             <p>Dirección:<br/>Tenayuca 140, Col Letrán Valle,<br/>Benito Juárez, 03103<br/>Ciudad de México, CDMX</p>
