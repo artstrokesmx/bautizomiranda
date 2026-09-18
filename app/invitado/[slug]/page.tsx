@@ -85,8 +85,8 @@ export default async function InvitacionPage({
       <div className="
         relative
         w-full
-        max-w-[425px]
-        h-[100vh] md:h-[840px]
+        max-w-[380px]
+        h-[740px] md:h-[740px]
         bg-invitation-bg-cream
         shadow-2xl
         rounded-none md:rounded-3xl
