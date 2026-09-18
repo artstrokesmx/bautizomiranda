@@ -85,8 +85,8 @@ export default async function InvitacionPage({
       <div className="
         relative
         w-full
-        max-w-[380px]
-        h-[740px] md:h-[740px]
+        max-w-[425px]
+        h-[745px]
         bg-invitation-bg-cream
         shadow-2xl
         rounded-none md:rounded-3xl
@@ -119,7 +119,7 @@ export default async function InvitacionPage({
           <Image
             src="/virgencita2.png"
             alt="Ilustración Virgencita"
-            className="object-cover object-top"
+            className="object-contain object-top-right -translate-y-[25px]"
             fill
             priority
           />
