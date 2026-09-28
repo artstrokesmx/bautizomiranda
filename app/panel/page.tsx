@@ -524,14 +524,24 @@ const handleGuardarEdicion = async (e: React.FormEvent) => {
               Familias pendientes por acomodar ({invitadosSinMesa.length})
             </h4>
             <div className="flex flex-wrap gap-2">
-              {invitadosSinMesa.map((inv) => (
+              {invitadosSinMesa.map((inv) => {
+                const totalConfirmados = (inv.confirmadosAdultos ?? 0) + (inv.confirmadosNinos ?? 0);
+              return (
                 <div 
                   key={inv.id} 
                   className="bg-white border border-amber-200 shadow-xs px-3 py-1.5 rounded-xl text-xs flex items-center gap-2"
                 >
                   <div>
-                    <span className="font-bold text-stone-800">{inv.nombreFamilia}</span>
-                    <span className="text-stone-400 text-[10px] block">{inv.pasesAsignados} pases</span>
+                    <span className="font-bold text-stone-800">{inv.nombreInvitado}</span>
+                    <span className="text-stone-400 text-[10px] block">{inv.nombreFamilia} •{' '}
+                  {inv.estatus === 'confirmado' ? (
+                    `${totalConfirmados} pases confirmados`
+                  ) : inv.estatus === 'cancelado' ? (
+                    'Canceló'
+                  ) : (
+                    'RSVP pendiente'
+                  )}
+                </span>
                   </div>
                   <select
                     onChange={(e) => e.target.value && handleAsignarMesa(inv.id, Number(e.target.value))}
@@ -546,7 +556,8 @@ const handleGuardarEdicion = async (e: React.FormEvent) => {
                     ))}
                   </select>
                 </div>
-              ))}
+              )
+              })}
             </div>
           </div>
         )}
@@ -556,7 +567,12 @@ const handleGuardarEdicion = async (e: React.FormEvent) => {
           {Array.from({ length: numMesas }, (_, index) => {
             const numeroMesa = index + 1;
             const familiasEnMesa = invitados.filter(inv => asignacionesMesas[inv.id] === numeroMesa);
-            const sillasOcupadas = familiasEnMesa.reduce((acc, curr) => acc + curr.pasesAsignados, 0);
+            const sillasOcupadas = familiasEnMesa.reduce((sum, inv) => {
+              if (inv.estatus !== 'confirmado') return sum;
+              const totalConfirmados = (inv.confirmadosAdultos ?? 0) + (inv.confirmadosNinos ?? 0);
+                return sum + totalConfirmados;
+            }, 0);
+
             const asientosLibres = sillasPorMesa - sillasOcupadas;
             const estaLlana = sillasOcupadas > sillasPorMesa;
 
@@ -593,14 +609,28 @@ const handleGuardarEdicion = async (e: React.FormEvent) => {
                       Mesa vacía
                     </div>
                   ) : (
-                    familiasEnMesa.map((inv) => (
+                    familiasEnMesa.map((inv) =>{
+                      const totalConfirmados = (inv.confirmadosAdultos ?? 0) + (inv.confirmadosNinos ?? 0);
+                    return(
                       <div 
                         key={inv.id} 
                         className="p-2.5 bg-stone-50 rounded-xl border border-stone-200 flex items-center justify-between text-xs"
                       >
                         <div>
-                          <p className="font-bold text-stone-800">{inv.nombreFamilia}</p>
-                          <p className="text-[11px] text-stone-500">{inv.pasesAsignados} pases ({inv.pasesNinos} niños)</p>
+                          <p className="font-bold text-stone-800">{inv.nombreInvitado}</p>
+                          <p className="text-[11px] text-stone-500">
+                        {inv.nombreFamilia} •{' '}
+                        {inv.estatus === 'confirmado' ? (
+                          <span className="font-semibold text-emerald-700">
+                            {totalConfirmados} confirmados ({inv.confirmadosAdultos ?? 0} Ad / {inv.confirmadosNinos ?? 0} Niñ)
+                          </span>
+                        ) : inv.estatus === 'cancelado' ? (
+                          <span className="font-semibold text-rose-600">Canceló asistencia</span>
+                        ) : (
+                          <span className="font-semibold text-amber-600">Pendiente RSVP</span>
+                        )}
+                      </p>
+
                         </div>
                         <button 
                           onClick={() => handleAsignarMesa(inv.id, null)}
@@ -610,7 +640,7 @@ const handleGuardarEdicion = async (e: React.FormEvent) => {
                           ✕
                         </button>
                       </div>
-                    ))
+                    )})
                   )}
                 </div>
               </div>
