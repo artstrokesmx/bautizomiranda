@@ -528,19 +528,24 @@ const handleGuardarEdicion = async (e: React.FormEvent) => {
                 const totalConfirmados = (inv.confirmadosAdultos ?? 0) + (inv.confirmadosNinos ?? 0);
               return (
                 <div 
-                  key={inv.id} 
-                  className="bg-white border border-amber-200 shadow-xs px-3 py-1.5 rounded-xl text-xs flex items-center gap-2"
+                  key={inv.id}
+                  className={`px-3 py-1.5 rounded-xl text-xs flex items-center gap-2 border shadow-xs transition-colors ${
+      inv.estatus === 'confirmado' 
+        ? 'bg-green-50 border-green-200 text-emerald-950' 
+        : 'bg-amber-50 border-yellow-200 text-amber-950'
+    }`}
+
                 >
                   <div>
                     <span className="font-bold text-stone-800">{inv.nombreInvitado}</span>
-                    <span className="text-stone-400 text-[10px] block">{inv.nombreFamilia} •{' '}
+                    <span className="text-stone-400 text-[10px] block">
                   {inv.estatus === 'confirmado' ? (
                     `${totalConfirmados} pases confirmados`
-                  ) : inv.estatus === 'cancelado' ? (
-                    'Canceló'
-                  ) : (
-                    'RSVP pendiente'
-                  )}
+                  )
+                  : (
+                    'Pendiente'
+                  )
+                  }
                 </span>
                   </div>
                   <select
